@@ -803,8 +803,12 @@ class ModelRunner:
             "kv_caches": kv_caches,
             "attn_metadata": attn_metadata,
         }
-        if self.vision_language_config:
-            execute_model_kwargs.update({"image_input": multi_modal_input})
+        # SEGA MODIFY == before
+        # if self.vision_language_config:
+        #     execute_model_kwargs.update({"image_input": multi_modal_input})
+        # SEGA MODIFY == after
+        execute_model_kwargs.update({"image_input": multi_modal_input})
+        # SEGA MODIFY == end
         hidden_states = model_executable(**execute_model_kwargs)
 
         # Compute the logits.

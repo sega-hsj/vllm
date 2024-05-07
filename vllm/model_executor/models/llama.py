@@ -280,11 +280,24 @@ class LlamaModel(nn.Module):
         kv_caches: List[torch.Tensor],
         attn_metadata: AttentionMetadata,
         inputs_embeds: Optional[torch.Tensor] = None,
+        image_input: Optional[torch.Tensor] = None
     ) -> torch.Tensor:
         if inputs_embeds is not None:
             hidden_states = inputs_embeds
         else:
             hidden_states = self.get_input_embeddings(input_ids)
+        
+        # SEGA MODIFY === start
+        if image_input is not None:
+            B, N, C = hidden_states.shape
+            hidden_states = hidden_states.reshape(B * N, C)
+            input_ids = input_ids.reshape(B * N)
+            selected = (input_ids == self.img_context_token_id) # TODO
+            assert selected.sum() != 0
+            hidden_states[selected] = image_input.reshape(-1, C)
+            hidden_states = hidden_states.reshape(B, N, C)
+        # SEGA MODIFY === end
+
         residual = None
         for i in range(len(self.layers)):
             layer = self.layers[i]
@@ -360,9 +373,10 @@ class LlamaForCausalLM(nn.Module):
         positions: torch.Tensor,
         kv_caches: List[torch.Tensor],
         attn_metadata: AttentionMetadata,
+        image_input: Optional[torch.Tensor] = None
     ) -> torch.Tensor:
         hidden_states = self.model(input_ids, positions, kv_caches,
-                                   attn_metadata)
+                                   attn_metadata, image_input=image_input)
         return hidden_states
 
     def compute_logits(self, hidden_states: torch.Tensor,
